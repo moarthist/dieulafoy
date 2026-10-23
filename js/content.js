@@ -1,10 +1,11 @@
-// All the text of the museum: the six rooms, the albums and the introduction.
-// Which page hangs in which room is decided in tools/build_data.py.
+// All the text of the study: the introduction, the six albums on the table (ROOMS, one per
+// subject) and notes on the eight INHA albums. Which page goes in which album is decided in
+// tools/build_data.py.
 
 export const MUSEUM = {
   name: 'Dieulafoy',
   title: 'Jane Dieulafoy: The Photographs',
-  tagline: 'A micro museum of the eight Dieulafoy albums kept at the INHA library in Paris, in six rooms.',
+  tagline: 'A library study with six albums on the table: the Dieulafoy photographs kept at the INHA library in Paris.',
   credit: {
     name: 'Mahmoud Mohammadi',
     lines: ['MA Visual Arts – Arts, Museology and Curatorship', 'University of Bologna'],
@@ -12,9 +13,9 @@ export const MUSEUM = {
   intro: [
     'Between 1881 and 1886 Jane Dieulafoy (1851–1916) crossed Persia twice with her husband, the engineer Marcel Dieulafoy: first on a journey through the country’s monuments, then on the excavation of Susa, whose glazed-brick friezes went to the Louvre. She travelled in men’s clothes, wrote the books that made the journeys famous, and photographed what she saw.',
     'After Marcel’s death in 1920 their albums entered the library of the Institut national d’histoire de l’art (INHA). Six of them are on Persia, one on Spain and Portugal, and one, “Divers”, holds everything else. Together they contain well over a thousand prints, mounted several to a page and captioned in ink.',
-    'This museum hangs every captioned page of the eight albums, 774 in all, sorted into six rooms by subject. Each one opens at full resolution from the INHA image server.',
+    'Here every captioned page of the eight albums, 774 in all, is bound again into six albums by subject, laid out on the table of a library study. Each page opens at full resolution from the INHA image server.',
   ],
-  caveat: 'The albums mix photographs taken by the Dieulafoys with prints given to them or bought: the 1892–94 Sémiramis mission led by Louis Lapicque (Perse 3), Charles Babin and Frédéric Houssay, their assistants at Susa (Perse 6), and commercial studios such as Mansell and Neurdein (Divers). A page in this museum is a page of their albums, not always a photograph by Jane.',
+  caveat: 'The albums mix photographs taken by the Dieulafoys with prints given to them or bought: the 1892–94 Sémiramis mission led by Louis Lapicque (Perse 3), Charles Babin and Frédéric Houssay, their assistants at Susa (Perse 6), and commercial studios such as Mansell and Neurdein (Divers). A page here is a page of their albums, not always a photograph by Jane.',
   rights: 'Scans and captions: Bibliothèque de l’INHA, collections Jacques Doucet, public domain. This project is independent and is not affiliated with the INHA.',
 };
 
@@ -26,7 +27,7 @@ export const ROOMS = [
     hero: [62747, 98],
     text: [
       'The Dieulafoys left Paris early in 1881 and reached Persia through Constantinople and the Caucasus. For about a year they moved by caravan, from Tabriz to Tehran, Isfahan and Shiraz, then down to the Gulf and up the rivers to Baghdad.',
-      'This room holds the pictures of moving through a country: streets and bazaars seen in passing, river banks, gardens, tents in the rain, the marshes of the Karun and the boats of skin and wood that crossed them.',
+      'This album holds the pictures of moving through a country: streets and bazaars seen in passing, river banks, gardens, tents in the rain, the marshes of the Karun and the boats of skin and wood that crossed them.',
       'The coasts of the Gulf and of Makran, with Muscat, Aden and the Suez Canal, come mostly from the album Perse 3 and the start of Perse 4, where the couple kept prints from the Sémiramis mission of 1892–94.',
     ],
   },
@@ -67,7 +68,7 @@ export const ROOMS = [
     hero: [62745, 63],
     text: [
       'The Qajar court sits for the camera here, Naser al-Din Shah, his son the Zell-e Soltan and their officials, next to dervishes, merchants, Armenian families of New Julfa, governors of Arabistan and the Lur and Arab men and women who worked at Susa.',
-      'Some portraits are careful studio pieces collected along the way; others were taken quickly in a courtyard or in front of a tent. The Dieulafoys are in this room too: Jane reading under a shelter at Susa, Marcel at the end of the excavations, and the two of them on the deck of a steamer.',
+      'Some portraits are careful studio pieces collected along the way; others were taken quickly in a courtyard or in front of a tent. The Dieulafoys are in this album too: Jane reading under a shelter at Susa, Marcel at the end of the excavations, and the two of them on the deck of a steamer.',
     ],
   },
   {

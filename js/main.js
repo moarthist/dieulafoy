@@ -1,11 +1,11 @@
-// Entry point: renderer, camera, navigation and the museum around them.
+// Entry point: renderer, camera, navigation, and the study with its six albums.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { ALBUMS, ITEMS } from './data.js';
-import { MUSEUM, ROOMS } from './content.js';
-import { B, buildBuilding, planRooms } from './building.js';
-import { buildFrames } from './frames.js';
+import { ROOMS } from './content.js';
+import { ROOM, TABLE, buildStudy } from './study.js';
+import { AW, buildAlbums } from './albums.js';
 import { UI } from './ui.js';
 
 const IIIF = 'https://bibliotheque-numerique.inha.fr/i/?IIIF=';
@@ -31,49 +31,55 @@ let pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
 renderer.setPixelRatio(pixelRatio);
 renderer.setClearColor(0x000000, 0);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+renderer.toneMappingExposure = 1.05;
 const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 200);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.03, 80);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.minDistance = 0.3;
-controls.maxDistance = 80;
+controls.minDistance = 0.25;
+controls.maxDistance = 22;
 controls.maxPolarAngle = Math.PI * 0.499;
 controls.rotateSpeed = 0.6;
 controls.panSpeed = 0.8;
 controls.screenSpacePanning = false;
 controls.listenToKeyEvents(window);
-controls.keyPanSpeed = 18;
+controls.keyPanSpeed = 14;
 
-// ---- Build the museum ----------------------------------------------------------------
-const plan = planRooms(ROOMS);
-const byRoom = Object.fromEntries(ROOMS.map((r) => [r.id, ITEMS.filter((it) => it.r === r.id)]));
-const counts = { total: ITEMS.length, ...Object.fromEntries(ROOMS.map((r) => [r.id, byRoom[r.id].length])) };
-const building = buildBuilding(scene, plan, { aniso, museum: MUSEUM, counts });
-// The scene is drawn only when something changes: the camera moves, a scan arrives, the window resizes.
+// The scene is drawn only when something changes: the camera moves, a scan arrives, a page turns.
 let dirty = true;
 const invalidate = () => { dirty = true; };
-const gallery = buildFrames(scene, plan, byRoom, { aniso, img, onChange: invalidate });
-const frames = gallery.frames;
+
+// ---- Build the study -------------------------------------------------------------------
+const study = buildStudy(scene, { aniso });
+study.setOnChange(invalidate);
+const byRoom = Object.fromEntries(ROOMS.map((r) => [r.id, ITEMS.filter((it) => it.r === r.id)]));
+const books = buildAlbums(scene, ROOMS, byRoom, { aniso, img, onChange: invalidate });
 
 // ---- Camera views ----------------------------------------------------------------------
+const R = books.READ;
 const VIEWS = {
-  overview: { label: 'Overview', pos: [20, 30, 36], target: [0, 0, 1], fov: 40 },
-  hall: { label: 'Hall', pos: [-B.X + 1.4, 1.62, 0.8], target: [B.X, 1.5, 0], fov: 60 },
-  ...Object.fromEntries(plan.map((p) => [`room${p.room.n}`, { label: `Room ${p.room.n}`, room: p.room, ...p.view }])),
-  plan: { label: 'Plan', pos: [0, 62, 0.05], target: [0, 0, 0], fov: 32 },
+  overview: { label: 'Overview', pos: [6.2, 6.4, 8.4], target: [0, 0.8, 0], fov: 40 },
+  desk: { label: 'The table', pos: [0.2, 1.75, TABLE.z + 2.1], target: [0, TABLE.top, TABLE.z], fov: 48 },
+  library: { label: 'Library', pos: [2.2, 1.6, 2.3], target: [-1.8, 1.5, -2.6], fov: 62 },
+  window: { label: 'Window', pos: [-1.8, 1.6, 1.4], target: [ROOM.W / 2, 1.7, 0], fov: 58 },
+  plan: { label: 'Plan', pos: [0, 15, 0.05], target: [0, 0, 0], fov: 38 },
 };
+const READ_VIEW = { pos: [R.x, TABLE.top + 0.95, R.z + 0.58], target: [R.x, TABLE.top, R.z + 0.02], fov: 44 };
 
 const ui = new UI({
-  views: VIEWS, albums: ALBUMS, frames, img, info, inhaPage,
-  onView: (id) => goTo(id),
-  onFrame: (k, quiet) => visitFrame(frames[Math.max(0, Math.min(frames.length - 1, k))], quiet),
+  views: VIEWS, rooms: ROOMS, albums: ALBUMS, books, img, info, inhaPage,
+  onView: (id) => { if (books.state.current) closeBook(); goTo(id); },
+  onBook: (i, spread) => openBook(books.albums[i], spread),
+  onItem: (it) => openAt(it),
+  onTurn: (d) => books.turn(d).then(sync),
+  onClose: () => closeBook(),
+  onSpread: (s) => { books.goToSpread(s); sync(); },
 });
 
 let aspect = 1;
@@ -81,13 +87,12 @@ function fovFor(base) {
   // keep the horizontal field of view reasonable on tall (phone) screens
   const ref = 1.35;
   if (aspect >= ref) return base;
-  return Math.min(88, 2 * Math.atan(Math.tan((base * Math.PI) / 360) * (ref / aspect)) * (180 / Math.PI));
+  return Math.min(90, 2 * Math.atan(Math.tan((base * Math.PI) / 360) * (ref / aspect)) * (180 / Math.PI));
 }
 let tween = null, baseFov = VIEWS.overview.fov;
-
-function flyTo(pos, target, fov, instant = false) {
-  baseFov = fov;
-  const to = { pos: new THREE.Vector3(...pos), target: new THREE.Vector3(...target), fov: fovFor(fov) };
+function flyTo(v, instant = false) {
+  baseFov = v.fov;
+  const to = { pos: new THREE.Vector3(...v.pos), target: new THREE.Vector3(...v.target), fov: fovFor(v.fov) };
   if (instant || reduceMotion) {
     camera.position.copy(to.pos);
     controls.target.copy(to.target);
@@ -95,11 +100,12 @@ function flyTo(pos, target, fov, instant = false) {
     camera.updateProjectionMatrix();
     controls.update();
     tween = null;
+    invalidate();
     return;
   }
   const dist = camera.position.distanceTo(to.pos);
   tween = {
-    t0: performance.now(), dur: Math.min(1800, 700 + dist * 40),
+    t0: performance.now(), dur: Math.min(1700, 800 + dist * 60),
     from: { pos: camera.position.clone(), target: controls.target.clone(), fov: camera.fov },
     to,
   };
@@ -108,70 +114,78 @@ function goTo(id, instant = false) {
   const v = VIEWS[id];
   if (!v) return;
   ui.setActiveView(id);
-  flyTo(v.pos, v.target, v.fov, instant);
+  flyTo(v, instant);
 }
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 controls.addEventListener('start', () => { tween = null; ui.setActiveView(null); });
 controls.addEventListener('change', invalidate);
 
-// Stand in front of a frame and show its card.
-function visitFrame(f, quiet = false) {
-  if (!f) return;
-  const c = f.center, n = f.normal;
-  const back = 2.1;
-  // on tall screens the card covers the lower half, so the frame is shown higher up
-  const drop = aspect < 1 ? 0.42 : 0;
-  const eyeY = Math.max(1.45, c.y + 0.05) - drop;
-  flyTo([c.x + n.x * back, eyeY, c.z + n.z * back], [c.x, c.y - drop, c.z], 44, quiet);
-  ui.setActiveView(null);
-  gallery.setHover(f);
+// ---- Albums ------------------------------------------------------------------------------
+function sync() {
+  ui.showBook(books.state.current, books.state.spread, books.visiblePages());
   invalidate();
-  ui.openCard(f);
 }
-
-// Walk to a point on the floor, keeping the direction you are looking in.
-function walkTo(point) {
-  const inRoom = plan.find((p) => p.inside(point.x, point.z));
-  const inHall = Math.abs(point.z) < B.HALL / 2 - 0.3 && Math.abs(point.x) < B.X - 0.3;
-  if (!inRoom && !inHall) return;
-  const dir = controls.target.clone().sub(camera.position).setY(0);
-  if (dir.lengthSq() < 1e-6) dir.set(1, 0, 0);
-  dir.normalize();
-  const eye = [point.x - dir.x * 0.6, 1.62, point.z - dir.z * 0.6];
-  const target = [point.x + dir.x * 2.4, 1.5, point.z + dir.z * 2.4];
+async function openBook(a, spread = 0, instant = false) {
   ui.setActiveView(null);
-  flyTo(eye, target, Math.max(camera.fov > 70 ? 60 : camera.fov, 55));
+  ui.setPins(false);
+  controls.stopListenToKeyEvents();
+  flyTo(READ_VIEW, instant);
+  ui.showBook(a, spread, []);
+  await books.openAlbum(a, spread);
+  sync();
+}
+async function closeBook() {
+  ui.showBook(null);
+  await books.closeAlbum();
+  controls.listenToKeyEvents(window);
+  ui.setPins(true);
+  invalidate();
+}
+function openAt(it) {
+  const a = books.albums.find((b) => b.room.id === it.r);
+  openBook(a, books.spreadOf(a, it));
 }
 
-// ---- Pins ------------------------------------------------------------------------------
-plan.forEach((p) => {
+// ---- Pins over the albums ---------------------------------------------------------------
+books.albums.forEach((a) => {
+  const p = books.home(a.i);
   ui.addPin({
-    label: `Room ${p.room.n} · ${p.room.title}`,
-    pos: p.panel.pos.clone().add(new THREE.Vector3(0, 1.15, 0)),
-    normal: p.panel.normal,
-    activate: (btn) => { goTo(`room${p.room.n}`); ui.openReader('rooms', btn, p.room.id); },
+    label: `${a.room.n} · ${a.room.title}`,
+    color: a.room.color,
+    pos: new THREE.Vector3(p.x - AW / 2 + 0.06, p.y + 0.12, p.z),
+    normal: new THREE.Vector3(0, 1, 0.4).normalize(),
+    activate: () => openBook(a),
   });
 });
-ui.addPin({ label: 'About the museum', pos: new THREE.Vector3(-B.X + B.T, 2.85, 0), normal: new THREE.Vector3(1, 0, 0), activate: (btn) => ui.openReader('about', btn) });
-ui.addPin({ label: 'The albums', pos: new THREE.Vector3(B.X - B.T, 2.85, 0), normal: new THREE.Vector3(-1, 0, 0), activate: (btn) => ui.openReader('albums', btn) });
 
 // ---- Picking -------------------------------------------------------------------------
 const ray = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
-const pickTargets = [...building.blockers, ...gallery.pickables];
+const pickTargets = [...study.blockers, ...books.pickables];
 function pick(ev) {
   const r = canvas.getBoundingClientRect();
   ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
-  const hit = ray.intersectObjects(pickTargets, false)[0];
+  const hit = ray.intersectObjects(pickTargets, false).find((h) => h.object.visible && h.object.parent.visible);
   if (!hit) return null;
-  if (hit.object.userData.frame) return { frame: hit.object.userData.frame };
-  if (hit.object.userData.frames) return { frame: hit.object.userData.frames[hit.instanceId] };
-  if (hit.object === building.floor) return { floor: hit.point };
+  if (hit.object.userData.album) return { album: hit.object.userData.album };
+  if (hit.object.userData.page) return { page: hit.object.userData.page, side: hit.object.userData.side };
+  if (study.floors.includes(hit.object)) return { floor: hit.point };
   return null;
 }
 
-let down = null, hovered = null;
+// Walk to a point on the floor, keeping the direction you are looking in.
+function walkTo(point) {
+  const m = 0.7;
+  if (Math.abs(point.x) > ROOM.W / 2 - m || Math.abs(point.z) > ROOM.D / 2 - m) return;
+  const dir = controls.target.clone().sub(camera.position).setY(0);
+  if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
+  dir.normalize();
+  ui.setActiveView(null);
+  flyTo({ pos: [point.x - dir.x * 0.5, 1.62, point.z - dir.z * 0.5], target: [point.x + dir.x * 2.4, 1.45, point.z + dir.z * 2.4], fov: 58 });
+}
+
+let down = null;
 canvas.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
 canvas.addEventListener('pointerup', (e) => {
   if (!down) return;
@@ -181,32 +195,38 @@ canvas.addEventListener('pointerup', (e) => {
   if (moved > 6 || dt > 500) return;
   const h = pick(e);
   if (!h) return;
-  if (h.frame) visitFrame(h.frame);
-  else if (h.floor) walkTo(h.floor);
+  if (h.album) openBook(h.album);
+  else if (h.page) {
+    if (h.page.kind === 'item') ui.openViewer(h.page.it);
+    else books.turn(h.side).then(sync);
+  } else if (h.floor && !books.state.current) walkTo(h.floor);
 });
-// Hovering is checked at most once a frame, and only against the pictures and the walls.
+// Hovering is checked at most once a frame.
 let moveEvent = null;
-const hoverTargets = [...building.blockers, ...gallery.photos];
-canvas.addEventListener('pointermove', (e) => {
-  if (e.pointerType === 'mouse' && !e.buttons) moveEvent = e;
-});
+canvas.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse' && !e.buttons) moveEvent = e; });
+canvas.addEventListener('pointerleave', () => { moveEvent = null; canvas.style.cursor = ''; });
 function hover() {
-  const e = moveEvent;
+  const h = pick(moveEvent);
   moveEvent = null;
-  const r = canvas.getBoundingClientRect();
-  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-  ray.setFromCamera(ndc, camera);
-  const hit = ray.intersectObjects(hoverTargets, false)[0];
-  const f = hit && hit.object.userData.frame;
-  if (f !== hovered) {
-    hovered = f;
-    gallery.setHover(f || ui.current);
-    invalidate();
-  }
-  canvas.style.cursor = f ? 'pointer' : hit && hit.object === building.floor ? 'crosshair' : '';
+  canvas.style.cursor = h && (h.album || h.page) ? 'pointer' : h && h.floor && !books.state.current ? 'crosshair' : '';
 }
-canvas.addEventListener('pointerleave', () => { moveEvent = null; hovered = null; gallery.setHover(ui.current); canvas.style.cursor = ''; invalidate(); });
-document.getElementById('frame-card').addEventListener('click', (e) => { if (e.target.closest('.card-close')) { gallery.setHover(null); invalidate(); } });
+
+// Keys: arrows turn the pages of an open album; Escape closes it.
+window.addEventListener('keydown', (e) => {
+  if (!books.state.current || !document.getElementById('viewer').hidden || e.target.closest('input')) return;
+  if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); books.turn(1).then(sync); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); books.turn(-1).then(sync); }
+  if (e.key === 'Escape' && document.getElementById('reader').hidden) closeBook();
+});
+// Swipe across an open album to turn its pages.
+let swipe = null;
+canvas.addEventListener('touchstart', (e) => { if (books.state.current && e.touches.length === 1) swipe = { x: e.touches[0].clientX, t: performance.now() }; }, { passive: true });
+canvas.addEventListener('touchend', (e) => {
+  if (!swipe) return;
+  const dx = e.changedTouches[0].clientX - swipe.x;
+  if (Math.abs(dx) > 50 && performance.now() - swipe.t < 600) books.turn(dx < 0 ? 1 : -1).then(sync);
+  swipe = null;
+});
 
 // ---- Size and loop ---------------------------------------------------------------------
 function resize() {
@@ -220,19 +240,6 @@ function resize() {
 }
 new ResizeObserver(resize).observe(stage);
 resize();
-
-let lastTick = 0, litRoom;
-function tick() {
-  const t = controls.target;
-  const p = plan.find((r) => r.inside(t.x, t.z)) || null;
-  if (p !== litRoom) {
-    litRoom = p;
-    building.lightRoom(p);
-    ui.setRoom(p && p.room);
-    invalidate();
-  }
-  gallery.stream(camera);
-}
 
 // If drawing is slow while moving, lower the resolution step by step.
 const slow = { n: 0, sum: 0, last: 0 };
@@ -255,6 +262,7 @@ function adapt(now) {
 function frame(now) {
   requestAnimationFrame(frame);
   if (moveEvent) hover();
+  if (books.update(now)) dirty = true;
   if (tween) {
     dirty = true;
     const k = Math.min(1, (now - tween.t0) / tween.dur), e = ease(k);
@@ -264,15 +272,14 @@ function frame(now) {
     camera.updateProjectionMatrix();
     if (k >= 1) { tween = null; camera.fov = fovFor(baseFov); camera.updateProjectionMatrix(); }
   }
-  controls.target.x = THREE.MathUtils.clamp(controls.target.x, -B.X, B.X);
-  controls.target.z = THREE.MathUtils.clamp(controls.target.z, -B.Z, B.Z);
-  controls.target.y = THREE.MathUtils.clamp(controls.target.y, 0, B.H);
+  controls.target.x = THREE.MathUtils.clamp(controls.target.x, -ROOM.W / 2, ROOM.W / 2);
+  controls.target.z = THREE.MathUtils.clamp(controls.target.z, -ROOM.D / 2, ROOM.D / 2);
+  controls.target.y = THREE.MathUtils.clamp(controls.target.y, 0, ROOM.H);
   controls.update();
   if (camera.position.y < 0.12) camera.position.y = 0.12;
-  if (now - lastTick > 300) { lastTick = now; tick(); }
   if (!dirty) { slow.last = 0; return; }
   dirty = false;
-  gallery.cull(camera);
+  study.cull(camera);
   renderer.render(scene, camera);
   ui.updatePins(camera, stage.clientWidth, stage.clientHeight);
   adapt(now);
@@ -280,45 +287,47 @@ function frame(now) {
 
 // ---- Start -----------------------------------------------------------------------------
 goTo('overview', true);
-tick();
+books.warmup(() => renderer.compile(scene, camera)); // compile every shader now, not on the first page turn
 requestAnimationFrame(frame);
 requestAnimationFrame(() => requestAnimationFrame(() => {
   document.getElementById('loading').classList.add('is-done');
   setTimeout(() => document.getElementById('loading')?.remove(), 600);
 }));
 
-// A link such as  #room4  or  #/walk/susa  opens straight in that room.
+// Links: #album3 opens the third album, #page-62747-15 (album id, page) opens at that page,
+// and a view name (#desk, #library…) goes there.
 function fromHash() {
   const h = location.hash.replace(/^#\/?/, '');
-  const byId = ROOMS.find((r) => h.endsWith(r.id));
-  const m = h.match(/^room([1-6])$/);
-  if (m) return `room${m[1]}`;
-  if (byId) return `room${byId.n}`;
-  if (VIEWS[h]) return h;
+  let m = h.match(/^album([1-6])$/);
+  if (m) return { book: +m[1] - 1 };
+  m = h.match(/page-(\d+)-(\d+)/);
+  if (m) {
+    const it = ITEMS.find((x) => x.a === +m[1] && x.p === +m[2]);
+    if (it) return { item: it };
+  }
+  const room = ROOMS.find((r) => h && h.endsWith(r.id));
+  if (room) return { book: room.n - 1 };
+  if (VIEWS[h]) return { view: h };
   return null;
 }
-// A link such as  #page-62747-15  (album id, page) opens in front of that frame.
-function frameFromHash() {
-  const m = location.hash.match(/page-(\d+)-(\d+)/);
-  return m ? frames.find((f) => f.it.a === +m[1] && f.it.p === +m[2]) : null;
+function follow(t, instant) {
+  if (!t) return;
+  if (t.book != null) openBook(books.albums[t.book], 0, instant);
+  else if (t.item) openAt(t.item);
+  else if (t.view) ui.onView(t.view);
 }
 function enter(instant) {
   const w = document.getElementById('welcome');
   if (!w) return;
   w.classList.add('is-done');
   setTimeout(() => w.remove(), instant ? 0 : 500);
-  const f = frameFromHash();
-  if (f) visitFrame(f, instant);
-  else goTo(fromHash() || 'hall', instant);
+  const t = fromHash();
+  if (t) follow(t, instant);
+  else goTo('desk');
 }
 document.getElementById('enter').addEventListener('click', () => enter(false));
-if (fromHash() || frameFromHash()) enter(true);
-window.addEventListener('hashchange', () => {
-  const f = frameFromHash();
-  if (f) { visitFrame(f); return; }
-  const v = fromHash();
-  if (v) goTo(v);
-});
+if (fromHash()) enter(true);
+window.addEventListener('hashchange', () => follow(fromHash()));
 
 // Handy for debugging.
-window.__museum = { goTo, camera, controls, scene, renderer, frames, plan, ui, THREE, visitFrame };
+window.__museum = { goTo, camera, controls, scene, renderer, books, ui, THREE, openBook, closeBook };

@@ -1,42 +1,35 @@
 # Jane Dieulafoy: The Photographs
 
-A micro museum of the eight Dieulafoy photograph albums kept at the library of the Institut national
-d’histoire de l’art (INHA), Paris, collections Jacques Doucet. Every captioned album page, 774 in all, hangs in
-one of six virtual rooms. Each opens at full resolution, with deep zoom, straight from the INHA image server.
+A 3D library study, after the classic Italian home office: glazed bookcases in pale lacquer and gilt, damask
+walls, a crystal chandelier, a Persian rug and a large library table. On the table lie **six leather albums**.
+Between them they hold every captioned page of the eight Dieulafoy photograph albums kept at the library of the
+Institut national d’histoire de l’art (INHA), Paris, collections Jacques Doucet: 774 pages, bound again by subject.
 
 It is a plain static website: no build step, no framework, nothing to install. It runs on GitHub Pages as it is.
 
-## The museum
+## The six albums
 
-The whole page is a 3D model of a small museum building, in the manner of the
-[Representing Persia](https://github.com/moarthist/representingpersia) room: six rooms open off a long hall, and
-the walls are cut away at the top like an architect's section model, so from above you look into every room.
-
-| Room | Title | What hangs there | Pages |
+| Album | Title | What it holds | Pages |
 | --- | --- | --- | --- |
-| 1 | The Road East | Streets, rivers, camps, the Gulf and the Makran coast | 98 |
-| 2 | Domes, Bridges and Bazaars | Mosques, madrasas, palaces, bridges and bazaars of Persia and Baghdad | 113 |
-| 3 | Ancient Empires | Pasargadae, Persepolis, Naqsh-e Rustam, Sasanian palaces, Ctesiphon, Babylon, Malamir, Bishapur | 113 |
-| 4 | Susa | The excavation of 1884–86, the friezes, the finds and the Dieulafoy rooms at the Louvre | 103 |
-| 5 | Faces and Encounters | Portraits: the Qajar court, dervishes, Armenians of Julfa, workers at Susa, the Dieulafoys | 151 |
-| 6 | Beyond Persia | Spain and Portugal, France, and the antiquities of the album “Divers” | 196 |
+| I | The Road East | Streets, rivers, camps, the Gulf and the Makran coast | 98 |
+| II | Domes, Bridges and Bazaars | Mosques, madrasas, palaces, bridges and bazaars of Persia and Baghdad | 113 |
+| III | Ancient Empires | Pasargadae, Persepolis, Naqsh-e Rustam, Sasanian palaces, Ctesiphon, Babylon, Malamir, Bishapur | 113 |
+| IV | Susa | The excavation of 1884–86, the friezes, the finds and the Dieulafoy rooms at the Louvre | 103 |
+| V | Faces and Encounters | Portraits: the Qajar court, dervishes, Armenians of Julfa, workers at Susa, the Dieulafoys | 151 |
+| VI | Beyond Persia | Spain and Portugal, France, and the antiquities of the album “Divers” | 196 |
 
-Rooms 1–3 are on the north side of the hall and 4–6 on the south side, so a visit goes round the hall. Each room
-has a freestanding central wall with the room’s wall text on it, framed in the room’s colour, and every one of the
-774 album pages hangs in a walnut frame with a mat, at real size (an album page is about 34 × 27 cm), in two or
-three rows round the walls. The scans come from the INHA image server: a small version for every frame, and a
-sharp one for the frames you stand close to.
+**How to visit.** Drag to look around, scroll or pinch to zoom, right-drag or the arrow keys to move, and click
+the floor to walk there. The buttons at the bottom go to the overview, the table, the library, the window and the
+plan, or open an album (I–VI). **Click an album** and the others move aside while it opens in front of you: the
+inside of its front board carries its introduction, and every leaf after that is a scan of a real album page.
+Turn the pages with **‹ ›**, the arrow keys, a swipe, or a click on a blank leaf. **Click a page**, or **Look
+closer** on the card, for the deep-zoom viewer, with the full INHA caption and a link to the page at INHA.
+**The study**, **The six albums**, **INHA albums** and **Search** open the reading panel.
 
-**How to visit.** Drag to look around, scroll or pinch to zoom, right-drag or the arrow keys to move. Click the
-floor to walk there, and click a frame to stand in front of it: its card gives the caption, album and page, with
-**‹ ›** to move along the wall, **Look closer** for the deep-zoom viewer, and a link to the page at INHA. The
-buttons at the bottom take you to the overview, the hall, each room and the plan; the gold pins and the buttons at
-the top open the texts, the album catalogue and a search across every caption.
+**Links.** `#album3` (or `#susa`, `#people`…) opens an album, `#page-62747-15` (INHA album id, page) opens the
+right album at that page, and `#library`, `#window`… go to a view.
 
-**Links.** `#room3` (or `#susa`, `#people`…) opens straight in a room, and `#page-62747-15` (album id, page)
-straight in front of that frame.
-
-## The albums
+## The INHA albums
 
 | Album | Shelf mark | INHA record |
 | --- | --- | --- |
@@ -73,13 +66,13 @@ In the repository, open **Settings → Pages**, set **Source** to *Deploy from a
 `js/data.js` is generated by `tools/build_data.py`. The script downloads the IIIF manifest of each album, keeps
 every page that has a catalogue caption (covers, endpapers and blank pages are left out), and hangs it in a room:
 
-1. the album *Espagne et Portugal* and the album *Divers* go to Room 6, except the Sasanian and Achaemenid
-   objects of *Divers*, which go to Room 3;
-2. other pages go to the room whose keywords (in `ROOMS`) match their caption most often;
+1. the album *Espagne et Portugal* and the album *Divers* go to album VI, except the Sasanian and Achaemenid
+   objects of *Divers*, which go to album III;
+2. other pages go to the album whose keywords (in `ROOMS`) match their caption most often;
 3. `OVERRIDES` fixes the pages where the words mislead, for example the apadana of Persepolis, which would
    otherwise land in Susa.
 
-To move a page to another room, add it to `OVERRIDES` as `(album id, page): 'room'` and run the script again:
+To move a page to another album, add it to `OVERRIDES` as `(INHA album id, page): 'subject'` and run the script again:
 
 ```bash
 python3 tools/build_data.py
@@ -87,23 +80,24 @@ python3 tools/build_data.py
 
 ## Edit the text
 
-All the writing is in `js/content.js`: the introduction (`MUSEUM`), the six rooms (`ROOMS`: title, subtitle,
-colour and wall text) and the album notes (`ALBUM_NOTES`).
+All the writing is in `js/content.js`: the introduction (`MUSEUM`), the six albums (`ROOMS`: title, subtitle,
+colour and introduction) and the notes on the INHA albums (`ALBUM_NOTES`).
 
 ## Files
 
 | File | What it does |
 | --- | --- |
-| `index.html` | Page shell: the 3D stage, masthead, menus, reading panel, frame card, viewer, welcome card |
+| `index.html` | Page shell: the 3D stage, masthead, menus, album bar, reading panel, card, viewer, welcome card |
 | `css/museum.css` | Interface styles |
-| `js/main.js` | Renderer, camera views, navigation, clicking and the loop |
-| `js/building.js` | Plan of the building: hall, rooms, doorways, central walls, wall texts, lights, benches |
-| `js/frames.js` | Hanging the pages, the frames, and streaming the scans |
-| `js/textures.js` | Procedural textures (concrete, walnut) and the texts drawn on canvases |
-| `js/ui.js` | View buttons, reading panel, frame card, pins and the deep-zoom viewer |
+| `js/main.js` | Renderer, camera views, navigation, opening albums, clicking and the loop |
+| `js/study.js` | The room: walls, bookcases and books, window, table, chair, lamp, globe, chandelier, rug, lights |
+| `js/albums.js` | The six albums: covers, opening and closing, page turning, and loading the scans |
+| `js/textures.js` | Procedural textures (parquet, damask, lacquer, leather) and the texts drawn on canvases |
+| `js/ui.js` | View buttons, album bar and card, reading panel, pins and the deep-zoom viewer |
 | `js/content.js` | **All the text** |
-| `js/data.js` | Generated list of albums and pages, with their captions and rooms |
+| `js/data.js` | Generated list of albums and pages, with their captions and subjects |
 | `tools/build_data.py` | Builds `js/data.js` from the INHA manifests |
+| `assets/carpet.jpg` | Photograph of the Persian rug, from the Representing Persia room |
 | `vendor/` | three.js r160 (MIT licence) and OpenSeadragon 4.1.1 (BSD licence), so no CDN is needed |
 
 ## Credits

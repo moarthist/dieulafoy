@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Jane Dieulafoy: The Photographs · Micro museum</title>
-  <meta name="description" content="A 3D micro museum: six rooms around a hall, with every captioned page of Jane Dieulafoy's eight photograph albums (INHA, Paris) framed on the walls.">
+  <title>Jane Dieulafoy: The Photographs · A library study</title>
+  <meta name="description" content="A 3D library study with six albums on the table: every captioned page of Jane Dieulafoy's photograph albums (INHA, Paris), to open and leaf through.">
   <meta name="theme-color" content="#e9e4d8">
   <link rel="stylesheet" href="css/museum.css">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%237c2d1d'/%3E%3Ctext x='16' y='24' font-family='Georgia' font-size='22' fill='%23fff7ee' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
@@ -20,12 +20,12 @@
 </head>
 <body>
   <main id="stage" class="stage">
-    <canvas id="scene" aria-label="Interactive 3D model of the museum. Drag to look around, scroll to zoom, click a frame to stand in front of it." tabindex="0"></canvas>
+    <canvas id="scene" aria-label="Interactive 3D model of a library study with six albums on the table. Drag to look around, scroll to zoom, click an album to open it." tabindex="0"></canvas>
     <div id="pins" class="pins"></div>
   </main>
 
   <header class="masthead">
-    <p class="eyebrow">Micro museum · Six rooms</p>
+    <p class="eyebrow">A library study · Six albums</p>
     <h1>Jane Dieulafoy <em>The Photographs</em></h1>
     <p class="sub">774 album pages from the INHA albums, 1880–1915</p>
     <p class="where" id="where"></p>
@@ -33,13 +33,14 @@
   </header>
 
   <nav id="read-menu" class="read-menu" aria-label="Texts">
-    <button type="button" class="btn" data-read="about">The museum</button>
-    <button type="button" class="btn" data-read="rooms">Rooms</button>
-    <button type="button" class="btn" data-read="albums">Albums</button>
+    <button type="button" class="btn" data-read="about">The study</button>
+    <button type="button" class="btn" data-read="books">The six albums</button>
+    <button type="button" class="btn" data-read="catalogue">INHA albums</button>
     <button type="button" class="btn accent" data-read="search">Search</button>
   </nav>
 
-  <div id="views" class="views" role="toolbar" aria-label="Camera views"></div>
+  <div id="views" class="views" role="toolbar" aria-label="Camera views and albums"></div>
+  <div id="album-bar" class="album-bar" hidden role="toolbar" aria-label="Open album"></div>
 
   <aside id="frame-card" class="frame-card" hidden aria-live="polite"></aside>
   <aside id="reader" class="reader" hidden role="dialog" aria-label="Reading panel"></aside>
@@ -67,24 +68,24 @@
 
   <section id="welcome" class="welcome" aria-labelledby="w-title">
     <div class="welcome-card">
-      <p class="eyebrow">Micro museum · Six rooms</p>
+      <p class="eyebrow">A library study · Six albums</p>
       <h2 id="w-title">Jane Dieulafoy <em>The Photographs</em></h2>
-      <p>Six rooms open off a long hall. Every captioned page of the eight Dieulafoy albums kept at the <strong>INHA</strong> library in Paris, <strong>774</strong> in all, hangs framed on their walls, from the road to Persia and the excavation of Susa to Spain and France.</p>
+      <p>Six leather albums lie on the table of a library study. Between them they hold every captioned page of the Dieulafoy albums kept at the <strong>INHA</strong> library in Paris, <strong>774</strong> in all: the road to Persia, its mosques and bridges, its ancient empires, the excavation of Susa, its people, and Spain and France.</p>
       <ul>
-        <li><b>Drag</b> to look around, <b>scroll</b> or pinch to zoom, <b>right-drag</b> or the arrow keys to move.</li>
-        <li><b>Click the floor</b> to walk there, and <b>a frame</b> to stand in front of it.</li>
-        <li>The buttons below take you to the hall, a room, or above the building.</li>
+        <li><b>Click an album</b> to open it, and turn its pages with <b>‹ ›</b>, the arrow keys or a swipe.</li>
+        <li><b>Click a page</b> to see the scan at full resolution.</li>
+        <li><b>Drag</b> to look around the room, <b>scroll</b> or pinch to zoom.</li>
       </ul>
-      <button type="button" id="enter" class="btn accent big">Enter the museum</button>
+      <button type="button" id="enter" class="btn accent big">Enter the study</button>
       <p class="credit">Developed by <strong>Mahmoud Mohammadi</strong><br>MA Visual Arts – Arts, Museology and Curatorship<br>University of Bologna</p>
     </div>
   </section>
 
-  <div id="loading" class="loading" role="status"><span>Building the rooms…</span></div>
+  <div id="loading" class="loading" role="status"><span>Opening the study…</span></div>
   <div id="fallback" class="fallback" hidden>
-    <p>This page needs WebGL to show the 3D museum, and your browser did not start it. Try a recent version of Chrome, Edge, Firefox or Safari, and check that hardware acceleration is on.</p>
+    <p>This page needs WebGL to show the 3D study, and your browser did not start it. Try a recent version of Chrome, Edge, Firefox or Safari, and check that hardware acceleration is on.</p>
   </div>
-  <noscript><p class="fallback">This page needs JavaScript to show the 3D museum.</p></noscript>
+  <noscript><p class="fallback">This page needs JavaScript to show the 3D study.</p></noscript>
 
   <script src="vendor/openseadragon.min.js"></script>
   <script type="module" src="js/main.js"></script>

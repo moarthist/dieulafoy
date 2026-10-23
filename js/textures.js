@@ -1,8 +1,10 @@
-// Procedural textures and canvas text helpers, in the style of the Representing Persia room.
+// Procedural textures and canvas text helpers for the study. No image files are needed,
+// apart from the photograph of the Persian rug (assets/carpet.jpg).
 import * as THREE from 'three';
 
 export const SERIF = 'Georgia, "Iowan Old Style", "Times New Roman", serif';
 export const SANS = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+export const GOLD = '#c9a44c';
 
 export function makeCanvas(w, h) {
   const c = document.createElement('canvas');
@@ -22,7 +24,7 @@ export function toTexture(canvas, { aniso = 4, repeat = null } = {}) {
   return t;
 }
 
-// Seeded random so the building looks the same on every load.
+// Seeded random so the study looks the same on every load.
 export function rng(seed) {
   let a = seed >>> 0;
   return () => {
@@ -33,90 +35,103 @@ export function rng(seed) {
   };
 }
 
-// Polished concrete: soft clouds, fine grain and saw-cut joints on the tile edge.
-export function concreteTexture(aniso, repeat) {
-  const S = 1024, c = makeCanvas(S, S), g = c.getContext('2d'), r = rng(7);
-  g.fillStyle = '#8f8f8c';
+// Herringbone parquet in honey oak; one tile of the texture is 1.2 m square.
+export function parquetTexture(aniso, repeat) {
+  const S = 1024, c = makeCanvas(S, S), g = c.getContext('2d'), r = rng(5);
+  g.fillStyle = '#7a5636';
   g.fillRect(0, 0, S, S);
-  for (let i = 0; i < 260; i++) {
-    const x = r() * S, y = r() * S, rad = 40 + r() * 190, a = 0.035 + r() * 0.05;
-    const dark = r() < 0.5;
-    const gr = g.createRadialGradient(x, y, 0, x, y, rad);
-    gr.addColorStop(0, dark ? `rgba(60,60,58,${a})` : `rgba(215,215,210,${a})`);
-    gr.addColorStop(1, 'rgba(128,128,126,0)');
-    g.fillStyle = gr;
-    g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+  const L = 256, Wd = 64; // a plank is 0.30 x 0.075 m
+  g.save();
+  g.translate(S / 2, S / 2);
+  g.rotate(Math.PI / 4);
+  for (let a = -12; a < 12; a++) {
+    for (let b = -12; b < 12; b++) {
+      // two planks at right angles, stepping along the diagonal
+      const x = a * Wd + b * L / 2, y = b * L / 2 - a * Wd;
+      [[x, y, L, Wd], [x + L - Wd, y - L + Wd, Wd, L]].forEach(([px, py, w, h]) => {
+        const tone = 0.82 + r() * 0.3;
+        g.fillStyle = `rgb(${Math.round(150 * tone)},${Math.round(108 * tone)},${Math.round(68 * tone)})`;
+        g.fillRect(px, py, w, h);
+        g.strokeStyle = 'rgba(40,25,10,0.5)';
+        g.lineWidth = 2;
+        g.strokeRect(px, py, w, h);
+      });
+    }
   }
-  const d = g.getImageData(0, 0, S, S), px = d.data, n = rng(19);
-  for (let i = 0; i < px.length; i += 4) {
-    const v = (n() - 0.5) * 12;
-    px[i] += v; px[i + 1] += v; px[i + 2] += v;
+  g.restore();
+  for (let i = 0; i < 1600; i++) {
+    g.fillStyle = `rgba(60,35,15,${r() * 0.06})`;
+    g.fillRect(r() * S, r() * S, 1 + r() * 40, 1);
   }
-  g.putImageData(d, 0, 0);
-  g.strokeStyle = 'rgba(40,40,38,0.55)';
-  g.lineWidth = 3;
-  g.strokeRect(0, 0, S, S);
   return toTexture(c, { aniso, repeat });
 }
 
-// Warm oiled wood grain for the frames and benches.
-export function woodTexture(aniso, base = '#4a2f1c', seed = 3) {
-  const W = 256, H = 512, c = makeCanvas(W, H), g = c.getContext('2d'), r = rng(seed);
+// Grey-blue damask wallpaper with a soft silver pattern.
+export function damaskTexture(aniso, repeat) {
+  const S = 512, c = makeCanvas(S, S), g = c.getContext('2d');
+  g.fillStyle = '#9aa6a8';
+  g.fillRect(0, 0, S, S);
+  const motif = (cx, cy) => {
+    g.save();
+    g.translate(cx, cy);
+    g.fillStyle = 'rgba(232,236,232,0.3)';
+    g.beginPath();
+    g.moveTo(0, -120);
+    g.bezierCurveTo(70, -90, 80, -20, 0, 0);
+    g.bezierCurveTo(-80, -20, -70, -90, 0, -120);
+    g.moveTo(0, 120);
+    g.bezierCurveTo(70, 90, 80, 20, 0, 0);
+    g.bezierCurveTo(-80, 20, -70, 90, 0, 120);
+    g.fill();
+    g.beginPath();
+    g.ellipse(0, 0, 100, 28, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = 'rgba(70,82,86,0.18)';
+    g.beginPath();
+    g.arc(0, 0, 22, 0, Math.PI * 2);
+    g.fill();
+    g.restore();
+  };
+  [[S / 2, S / 2], [0, 0], [S, 0], [0, S], [S, S]].forEach(([x, y]) => motif(x, y));
+  return toTexture(c, { aniso, repeat });
+}
+
+// Lacquer with a fine brushed grain, for the bookcases and the desk.
+export function lacquerTexture(aniso, base = '#c3ccca') {
+  const S = 256, c = makeCanvas(S, S), g = c.getContext('2d'), r = rng(11);
   g.fillStyle = base;
-  g.fillRect(0, 0, W, H);
-  for (let i = 0; i < 90; i++) {
-    const x = r() * W, w = 1 + r() * 4, a = 0.05 + r() * 0.12;
-    g.fillStyle = r() < 0.5 ? `rgba(20,10,0,${a})` : `rgba(255,220,170,${a * 0.6})`;
-    g.fillRect(x, 0, w, H);
+  g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 400; i++) {
+    g.fillStyle = r() < 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(60,70,70,0.04)';
+    g.fillRect(0, r() * S, S, 1);
   }
   return toTexture(c, { aniso });
 }
 
-// Soft blurred rectangle used as a fake contact shadow behind frames and furniture.
-let shadowTex = null;
-export function softShadowTexture() {
-  if (shadowTex) return shadowTex;
-  const S = 128, c = makeCanvas(S, S), g = c.getContext('2d');
-  g.shadowColor = 'rgba(0,0,0,0.9)';
-  g.shadowBlur = 22;
-  g.shadowOffsetX = 1000;
-  g.fillStyle = '#000';
-  g.fillRect(34 - 1000, 34, S - 68, S - 68);
-  shadowTex = new THREE.CanvasTexture(c);
-  return shadowTex;
-}
-
 // Wraps text inside a box. Returns the y position after the last line.
-export function wrapText(g, text, x, y, maxW, lineH, maxLines = 99) {
+export function wrapText(g, text, x, y, maxW, lineH) {
   const words = text.split(/\s+/);
-  let line = '', lines = 0;
-  for (let i = 0; i < words.length; i++) {
-    const test = line ? line + ' ' + words[i] : words[i];
-    if (g.measureText(test).width > maxW && line) {
-      if (lines + 1 >= maxLines) {
-        g.fillText(line.replace(/[ ,.;:]+$/, '') + '…', x, y);
-        return y + lineH;
-      }
-      g.fillText(line, x, y);
-      y += lineH;
-      lines++;
-      line = words[i];
-    } else {
-      line = test;
-    }
+  let line = '';
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w;
+    if (g.measureText(test).width > maxW && line) { g.fillText(line, x, y); y += lineH; line = w; } else line = test;
   }
   if (line) { g.fillText(line, x, y); y += lineH; }
   return y;
 }
 
 // Letter-spaced text for small capitals.
-export function spaced(g, text, x, y, spacing) {
-  let cx = x;
+export function spaced(g, text, x, y, spacing, align = 'left') {
+  let w = 0;
+  for (const ch of text) w += g.measureText(ch).width + spacing;
+  let cx = align === 'center' ? x - (w - spacing) / 2 : x;
+  const keep = g.textAlign;
+  g.textAlign = 'left';
   for (const ch of text) {
     g.fillText(ch, cx, y);
     cx += g.measureText(ch).width + spacing;
   }
-  return cx;
+  g.textAlign = keep;
 }
 
 function countLines(g, text, maxW) {
@@ -128,10 +143,10 @@ function countLines(g, text, maxW) {
   return n + (line ? 1 : 0);
 }
 
-// Paragraphs in a column; the serif type shrinks (down to 70%) until the text ends above `bottom`.
+// Paragraphs in a column; the serif type shrinks (down to 60%) until the text ends above `bottom`.
 function fitParagraphs(g, list, x, y, maxW, size, lineH, gap, bottom) {
   let k = 1;
-  for (; k > 0.7; k -= 0.02) {
+  for (; k > 0.6; k -= 0.02) {
     g.font = `${size * k}px ${SERIF}`;
     const end = list.reduce((yy, p) => yy + countLines(g, p, maxW) * lineH * k + gap * k, y);
     if (end <= bottom) break;
@@ -140,98 +155,131 @@ function fitParagraphs(g, list, x, y, maxW, size, lineH, gap, bottom) {
   return y;
 }
 
-// The wall text of a room, on the head of its central wall: canvas 1200 x 1600 for 1.5 m x 2.0 m.
-export function roomPanelCanvas(room, count) {
-  const W = 1200, H = 1600, c = makeCanvas(W, H), g = c.getContext('2d');
-  g.fillStyle = '#e4dfd3';
+export const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
+
+// Gold tooling: a double fillet border with small corner fleurons.
+function tooling(g, W, H, inset) {
+  g.strokeStyle = GOLD;
+  g.lineWidth = 6;
+  g.strokeRect(inset, inset, W - 2 * inset, H - 2 * inset);
+  g.lineWidth = 2;
+  g.strokeRect(inset + 16, inset + 16, W - 2 * inset - 32, H - 2 * inset - 32);
+  g.fillStyle = GOLD;
+  [[inset + 16, inset + 16], [W - inset - 16, inset + 16], [inset + 16, H - inset - 16], [W - inset - 16, H - inset - 16]].forEach(([x, y]) => {
+    g.beginPath();
+    g.moveTo(x, y - 14); g.lineTo(x + 14, y); g.lineTo(x, y + 14); g.lineTo(x - 14, y);
+    g.closePath();
+    g.fill();
+  });
+}
+
+export function leatherCanvas(color, seed, W = 512, H = 395) {
+  const c = makeCanvas(W, H), g = c.getContext('2d');
+  leather(g, W, H, color, seed);
+  return c;
+}
+
+function leather(g, W, H, color, seed) {
+  g.fillStyle = color;
   g.fillRect(0, 0, W, H);
-  g.strokeStyle = 'rgba(40,30,20,0.25)';
-  g.lineWidth = 4;
-  g.strokeRect(28, 28, W - 56, H - 56);
+  const r = rng(seed);
+  for (let i = 0; i < (W * H) / 300; i++) {
+    g.fillStyle = r() < 0.5 ? `rgba(0,0,0,${r() * 0.12})` : `rgba(255,255,255,${r() * 0.05})`;
+    g.beginPath();
+    g.arc(r() * W, r() * H, 1 + r() * 3, 0, Math.PI * 2);
+    g.fill();
+  }
+  const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.2, W / 2, H / 2, Math.max(W, H) * 0.7);
+  vg.addColorStop(0, 'rgba(255,255,255,0.06)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.3)');
+  g.fillStyle = vg;
+  g.fillRect(0, 0, W, H);
+}
+
+export function leatherColor(room) {
+  return `#${new THREE.Color(room.color).multiplyScalar(0.55).getHexString()}`;
+}
+
+// The front board of an album, in morocco leather with gold tooling: 1024 x 790 for 0.42 x 0.32 m.
+export function coverCanvas(room) {
+  const W = 1024, H = 790, c = makeCanvas(W, H), g = c.getContext('2d');
+  leather(g, W, H, leatherColor(room), room.n * 7);
+  tooling(g, W, H, 34);
+  g.textAlign = 'center';
   g.textBaseline = 'alphabetic';
-  g.fillStyle = room.color;
-  g.font = `700 30px ${SANS}`;
-  spaced(g, `ROOM ${String(room.n).padStart(2, '0')}  ·  ${count} ALBUM PAGES`, 80, 120, 4);
-  g.globalAlpha = 0.16;
-  g.font = `700 300px ${SERIF}`;
-  g.fillText(String(room.n).padStart(2, '0'), 820, 310);
-  g.globalAlpha = 1;
-  g.fillStyle = '#1f1a16';
-  g.font = `700 96px ${SERIF}`;
-  const end = wrapText(g, room.title, 80, 270, W - 160, 100);
-  g.fillStyle = '#5a4f44';
-  g.font = `italic 44px ${SERIF}`;
-  g.fillText(room.subtitle, 80, end - 20);
-  g.fillStyle = room.color;
-  g.fillRect(80, end + 20, 140, 6);
-  g.fillStyle = '#2b2520';
-  fitParagraphs(g, room.text, 80, end + 100, W - 160, 34, 48, 22, H - 70);
+  g.fillStyle = GOLD;
+  g.font = `600 30px ${SERIF}`;
+  spaced(g, 'ALBUM DIEULAFOY', W / 2, 190, 8, 'center');
+  g.font = `700 130px ${SERIF}`;
+  g.fillText(ROMAN[room.n - 1], W / 2, 350);
+  g.font = `italic 64px ${SERIF}`;
+  g.fillText(room.title, W / 2, 470, W - 200);
+  g.fillRect(W / 2 - 60, 510, 120, 3);
+  g.font = `30px ${SERIF}`;
+  g.fillText(room.subtitle, W / 2, 580, W - 220);
   return c;
 }
 
-// The big wall text at the entrance of the hall.
-export function entranceCanvas(m, count) {
-  const W = 1500, H = 1000, c = makeCanvas(W, H), g = c.getContext('2d');
-  g.clearRect(0, 0, W, H);
-  g.textBaseline = 'alphabetic';
-  g.fillStyle = '#1f1a16';
-  g.font = `700 150px ${SERIF}`;
-  g.fillText('Jane Dieulafoy', 20, 150, W - 40);
-  g.fillStyle = '#7c2d1d';
-  g.font = `italic 120px ${SERIF}`;
-  g.fillText('The Photographs', 20, 290);
-  g.fillStyle = '#5a4f44';
-  g.font = `700 32px ${SANS}`;
-  spaced(g, `A MICRO MUSEUM  ·  ${count} ALBUM PAGES  ·  SIX ROOMS`, 24, 370, 4);
-  g.fillStyle = '#7c2d1d';
-  g.fillRect(24, 410, 140, 6);
-  g.fillStyle = '#2b2520';
-  g.font = `40px ${SERIF}`;
-  let y = 490;
-  m.intro.slice(0, 2).forEach((p) => { y = wrapText(g, p, 24, y, 1420, 58, 5) + 18; });
-  return c;
-}
-
-// The closing wall at the far end of the hall.
-export function closingCanvas(m) {
-  const W = 1500, H = 1000, c = makeCanvas(W, H), g = c.getContext('2d');
-  g.clearRect(0, 0, W, H);
-  g.textBaseline = 'alphabetic';
-  g.fillStyle = '#1f1a16';
-  g.font = `700 120px ${SERIF}`;
-  g.fillText('About the albums', 20, 140);
-  g.fillStyle = '#7c2d1d';
-  g.fillRect(24, 190, 140, 6);
-  g.fillStyle = '#2b2520';
-  g.font = `40px ${SERIF}`;
-  let y = 280;
-  y = wrapText(g, m.intro[2], 24, y, 1420, 58) + 18;
-  y = wrapText(g, m.caveat, 24, y, 1420, 58) + 30;
-  g.fillStyle = '#5a4f44';
-  g.font = `30px ${SANS}`;
-  y = wrapText(g, m.rights, 24, y, 1420, 44) + 30;
-  g.fillStyle = '#1f1a16';
-  g.font = `700 30px ${SANS}`;
-  g.fillText(`Developed by ${m.credit.name}`, 24, y);
-  g.font = `30px ${SANS}`;
-  g.fillStyle = '#5a4f44';
-  m.credit.lines.forEach((l, i) => g.fillText(l, 24, y + 44 * (i + 1)));
-  return c;
-}
-
-// The room name over each doorway, seen from the hall.
-export function doorSignCanvas(room) {
-  const W = 1200, H = 300, c = makeCanvas(W, H), g = c.getContext('2d');
-  g.clearRect(0, 0, W, H);
+// The inside of the front board: the album's introduction, printed on cream paper.
+export function introPageCanvas(room, count) {
+  const W = 1024, H = 790, c = makeCanvas(W, H), g = c.getContext('2d');
+  g.fillStyle = '#f1e9d8';
+  g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(120,90,40,0.35)';
+  g.lineWidth = 2;
+  g.strokeRect(40, 40, W - 80, H - 80);
   g.textBaseline = 'alphabetic';
   g.fillStyle = room.color;
-  g.font = `700 150px ${SERIF}`;
-  g.fillText(String(room.n).padStart(2, '0'), 20, 190);
+  g.font = `700 22px ${SANS}`;
+  spaced(g, `ALBUM ${ROMAN[room.n - 1]}  ·  ${count} PAGES`, 80, 110, 4);
   g.fillStyle = '#1f1a16';
-  g.font = `700 76px ${SERIF}`;
-  g.fillText(room.title, 250, 150, W - 270);
+  g.font = `700 60px ${SERIF}`;
+  g.fillText(room.title, 80, 180, W - 160);
   g.fillStyle = '#5a4f44';
-  g.font = `italic 40px ${SERIF}`;
-  g.fillText(room.subtitle, 252, 215, W - 270);
+  g.font = `italic 32px ${SERIF}`;
+  g.fillText(room.subtitle, 80, 228, W - 160);
+  g.fillStyle = room.color;
+  g.fillRect(80, 254, 100, 4);
+  g.fillStyle = '#2b2520';
+  fitParagraphs(g, room.text, 80, 310, W - 160, 26, 37, 14, H - 70);
+  return c;
+}
+
+// A plain cream leaf, with an optional line of text in the middle.
+export function blankPageCanvas(note) {
+  const W = 512, H = 395, c = makeCanvas(W, H), g = c.getContext('2d');
+  g.fillStyle = '#f1e9d8';
+  g.fillRect(0, 0, W, H);
+  if (note) {
+    g.fillStyle = '#8a7c6a';
+    g.font = `italic 22px ${SERIF}`;
+    g.textAlign = 'center';
+    g.fillText(note, W / 2, H / 2);
+  }
+  return c;
+}
+
+// The welcome card standing on the desk.
+export function deskCardCanvas(museum, count) {
+  const W = 800, H = 560, c = makeCanvas(W, H), g = c.getContext('2d');
+  g.fillStyle = '#f4ecdb';
+  g.fillRect(0, 0, W, H);
+  g.strokeStyle = GOLD;
+  g.lineWidth = 6;
+  g.strokeRect(20, 20, W - 40, H - 40);
+  g.textAlign = 'center';
+  g.fillStyle = '#1f1a16';
+  g.font = `700 64px ${SERIF}`;
+  g.fillText('Jane Dieulafoy', W / 2, 140);
+  g.fillStyle = '#7c2d1d';
+  g.font = `italic 52px ${SERIF}`;
+  g.fillText('The Photographs', W / 2, 210);
+  g.fillStyle = '#5a4f44';
+  g.font = `600 22px ${SANS}`;
+  spaced(g, `SIX ALBUMS · ${count} PAGES`, W / 2, 270, 5, 'center');
+  g.fillStyle = '#2b2520';
+  g.font = `26px ${SERIF}`;
+  g.textAlign = 'left';
+  wrapText(g, 'Open an album to turn its pages. Every page is a page of the Dieulafoy albums at the INHA library, Paris.', 70, 340, W - 140, 38);
   return c;
 }
