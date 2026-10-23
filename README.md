@@ -20,6 +20,13 @@ It is a plain static website: no build step, no framework, nothing to install. I
 Each room opens with a wall text, then a **gallery wall** you walk along (scroll, swipe, or the arrow keys), or an
 **index** of every page with a caption search. Click any page to open the viewer: deep zoom, the full INHA
 caption, album, page and shelf mark, a link to the page in the INHA viewer and to the full-size image.
+**Walk in 3D** (`#/walk`, or `#/walk/susa` to start in a room) is a first-person walk-through of the same six
+rooms, built with three.js. The rooms open into one another through doorways, from Room 1 to Room 6. Each has a
+central wall painted in its colour with the wall text on its head, and every one of the 774 pages hangs framed in
+two rows along the walls, numbered in walking order. Drag to look; walk with the arrow keys or W A S D (Shift to
+hurry), or click the floor to go there; click a frame to open it in the viewer; press 1 to 6 or click the plan
+to jump. Scans load from INHA as you approach them.
+
 **Albums** lists the eight albums with their records and searches all captions at once.
 
 ## The albums
@@ -83,14 +90,16 @@ colour, wall text and the page shown at the entrance) and the album notes (`ALBU
 | `index.html` | Page shell: top bar, main area, viewer |
 | `css/museum.css` | All styles: lobby, floor plan, rooms, gallery wall, index, albums, viewer |
 | `js/app.js` | Routing, lobby, rooms, albums, search and the viewer |
+| `js/walk.js` | The 3D walk-through: room layout, frames, walking, the plan |
 | `js/content.js` | **All the text** |
 | `js/data.js` | Generated list of albums and pages, with their captions and rooms |
 | `tools/build_data.py` | Builds `js/data.js` from the INHA manifests |
 | `vendor/openseadragon.min.js` | OpenSeadragon 4.1.1 (BSD licence) for deep zoom |
+| `vendor/three.module.js` | three.js r160 (MIT licence) for the walk-through |
 
 ## Credits
 
 Developed by **Mahmoud Mohammadi**, MA Visual Arts – Arts, Museology and Curatorship, University of Bologna.
 
 Scans and captions: Bibliothèque de l’INHA, collections Jacques Doucet, public domain. This project is
-independent and is not affiliated with the INHA. Deep zoom by [OpenSeadragon](https://openseadragon.github.io/).
+independent and is not affiliated with the INHA. Deep zoom by [OpenSeadragon](https://openseadragon.github.io/); 3D by [three.js](https://threejs.org/).

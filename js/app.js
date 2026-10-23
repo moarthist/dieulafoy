@@ -87,7 +87,8 @@ function renderLobby() {
       <h1>Jane Dieulafoy<em>The Photographs</em></h1>
       <p class="lede">${esc(MUSEUM.tagline)}</p>
       <div class="cta">
-        <a class="btn solid" href="#/room/${ROOMS[0].id}">Enter Room 1</a>
+        <a class="btn solid" href="#/walk">Walk through in 3D</a>
+        <a class="btn" href="#/room/${ROOMS[0].id}">Enter Room 1</a>
         <a class="btn" href="#plan">Floor plan</a>
       </div>
       <dl class="stats">
@@ -174,6 +175,7 @@ function renderRoom(room, view) {
       <input type="search" id="q" placeholder="Search captions in this room">
     </label>
     <p class="pos" id="pos" ${view === 'wall' ? '' : 'hidden'}></p>
+    <a class="btn small walk-link" href="#/walk/${room.id}">Walk this room in 3D</a>
   </div>
 
   <section class="gallery" id="gallery">${view === 'wall' ? wall(list, next) : grid(list)}</section>
@@ -464,14 +466,67 @@ app.addEventListener('click', (e) => {
 });
 viewer.querySelector('#v-room').addEventListener('click', (e) => { if (e.target.closest('a')) hide(); });
 
+// ---------- walk-through ----------
+
+let stopWalk = null;
+
+function renderWalk(roomId) {
+  document.body.classList.add('walking');
+  app.innerHTML = `
+  <section class="walk" id="walk">
+    <canvas class="w-gl" tabindex="0" aria-label="3D gallery. Drag to look, arrow keys or W A S D to walk, click a photograph to open it."></canvas>
+    <div class="w-top">
+      <p class="w-room"></p>
+      <nav class="w-rooms" aria-label="Go to room">${ROOMS.map((r, i) => `<button type="button" data-go="${i}" style="--c:${r.color}" title="${esc(r.title)}">${r.n}</button>`).join('')}</nav>
+    </div>
+    <div class="w-cross" aria-hidden="true"></div>
+    <div class="w-label" hidden></div>
+    <canvas class="w-map" title="Plan: click to go there"></canvas>
+    <div class="w-intro">
+      <p class="eyebrow">Walk-through</p>
+      <h1>Six rooms, ${ITEMS.length} frames</h1>
+      <ul>
+        <li><b>Look</b> drag with the mouse or a finger</li>
+        <li><b>Walk</b> arrow keys or W A S D (Shift to hurry), or click the floor</li>
+        <li><b>Open</b> click a photograph</li>
+        <li><b>Jump</b> keys 1 to 6, or the room buttons</li>
+      </ul>
+      <button type="button" class="btn solid w-start">Start walking</button>
+    </div>
+    <p class="w-loading">Building the rooms…</p>
+  </section>`;
+  const el = document.getElementById('walk');
+  const startRoom = Math.max(0, ROOMS.findIndex((r) => r.id === roomId));
+  import('./walk.js').then(async (m) => {
+    if (!document.body.contains(el)) return;
+    const stop = await m.start(el, {
+      ITEMS, ROOMS, img, title, startRoom,
+      albumName: (it) => albumById[it.a].name,
+      show, setList, credit: MUSEUM.credit,
+    });
+    if (!document.body.contains(el)) { stop(); return; }
+    stopWalk = stop;
+    el.classList.add('ready');
+  }).catch((err) => {
+    el.querySelector('.w-loading').textContent = `The 3D rooms could not start in this browser (${err.message}). Try the gallery walls instead.`;
+  });
+}
+
 // ---------- router ----------
 
 function route() {
   const [, page, arg] = (location.hash || '#/').split('/');
   if (!viewer.hidden) hide();
+  if (stopWalk) { stopWalk(); stopWalk = null; }
+  document.body.classList.remove('walking');
   document.documentElement.style.removeProperty('--room');
   document.documentElement.style.removeProperty('--room-ink');
-  if (page === 'room' && roomById[arg]) {
+  if (page === 'walk') {
+    renderBar(null);
+    renderWalk(arg);
+    document.title = 'Walk-through · Jane Dieulafoy';
+    window.scrollTo(0, 0);
+  } else if (page === 'room' && roomById[arg]) {
     renderBar(arg);
     renderRoom(roomById[arg]);
     document.title = `Room ${roomById[arg].n}: ${roomById[arg].title} · Jane Dieulafoy`;
