@@ -1,13 +1,31 @@
 # Jane Dieulafoy: The Photographs
 
-A 3D library study, after the classic Italian home office: glazed bookcases in pale lacquer and gilt, damask
-walls, a crystal chandelier, a Persian rug and a large library table. On the table lie **six leather albums**.
-Between them they hold every captioned page of the eight Dieulafoy photograph albums kept at the library of the
-Institut national d’histoire de l’art (INHA), Paris, collections Jacques Doucet: 774 pages, bound again by subject.
+**A catalogue to read.** The site opens as an old printed catalogue lying on a desk: a cloth-bound cover with gilt
+lettering, marbled endpapers, a title page, contents, an introduction, six chapters of numbered plates, a
+concordance with the INHA albums and a colophon. Its 774 plates are every captioned page of the eight Dieulafoy
+photograph albums kept at the library of the Institut national d’histoire de l’art (INHA), Paris, collections
+Jacques Doucet.
+
+- **Reading.** Two pages at a time on a wide screen, one on a phone. Turn the pages with **‹ ›**, the arrow keys,
+  a swipe, or a click on the outer edge of a page (the corner lifts when the pointer is there); the page slider
+  and **Contents** jump further. Each chapter opens on a right-hand page, as in print.
+- **The plates.** Two to a page, numbered 1–774, each with the INHA catalogue caption, the album, its page and the
+  shelf mark. Click a plate to see the scan at full resolution with deep zoom; ← → go through the plates.
+- **Search** finds plates by any word of their captions and turns to them.
+- **Links.** `#p116` opens page 116, `#no214` plate 214, `#contents` the contents.
+
+The same pages can also be visited in 3D, as six albums on the table of a library study: **`study.html`** (see
+below).
 
 It is a plain static website: no build step, no framework, nothing to install. It runs on GitHub Pages as it is.
 
-## The six albums
+## The study in 3D (`study.html`)
+
+A 3D library study, after the classic Italian home office: glazed bookcases in pale lacquer and gilt, damask
+walls, a crystal chandelier, a Persian rug and a large library table, with **six leather albums** on it, one for
+each chapter of the catalogue.
+
+### The six albums
 
 | Album | Title | What it holds | Pages |
 | --- | --- | --- | --- |
@@ -18,7 +36,7 @@ It is a plain static website: no build step, no framework, nothing to install. I
 | V | Faces and Encounters | Portraits: the Qajar court, dervishes, Armenians of Julfa, workers at Susa, the Dieulafoys | 151 |
 | VI | Beyond Persia | Spain and Portugal, France, and the antiquities of the album “Divers” | 196 |
 
-**How to visit.** Drag to look around, scroll or pinch to zoom, right-drag or the arrow keys to move, and click
+**How to visit the study.** Drag to look around, scroll or pinch to zoom, right-drag or the arrow keys to move, and click
 the floor to walk there. The buttons at the bottom go to the overview, the table, the library, the window and the
 plan, or open an album (I–VI). **Click an album** and the others move aside while it opens in front of you: the
 inside of its front board carries its introduction, and every leaf after that is a scan of a real album page.
@@ -80,15 +98,19 @@ python3 tools/build_data.py
 
 ## Edit the text
 
-All the writing is in `js/content.js`: the introduction (`MUSEUM`), the six albums (`ROOMS`: title, subtitle,
-colour and introduction) and the notes on the INHA albums (`ALBUM_NOTES`).
+All the writing is in `js/content.js`: the introduction (`MUSEUM`), the six chapters or albums (`ROOMS`: title,
+subtitle, colour and introduction) and the notes on the INHA albums (`ALBUM_NOTES`). Both the catalogue and the
+study read it.
 
 ## Files
 
 | File | What it does |
 | --- | --- |
-| `index.html` | Page shell: the 3D stage, masthead, menus, album bar, reading panel, card, viewer, welcome card |
-| `css/museum.css` | Interface styles |
+| `index.html` | The catalogue: desk, book, page bar, search sheet and viewer |
+| `css/catalogue.css` | The catalogue’s styles: covers, endpapers, paper, type, page turning |
+| `js/catalogue.js` | The catalogue: builds and numbers the pages, turns them, search, viewer, links |
+| `study.html` | The 3D study: stage, masthead, menus, album bar, reading panel, card, viewer, welcome card |
+| `css/museum.css` | Interface styles of the 3D study |
 | `js/main.js` | Renderer, camera views, navigation, opening albums, clicking and the loop |
 | `js/study.js` | The room: walls, bookcases and books, window, table, chair, lamp, globe, chandelier, rug, lights |
 | `js/albums.js` | The six albums: covers, opening and closing, page turning, and loading the scans |

@@ -3,47 +3,53 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Jane Dieulafoy: The Photographs · A library study</title>
-  <meta name="description" content="A 3D library study with six albums on the table: every captioned page of Jane Dieulafoy's photograph albums (INHA, Paris), to open and leaf through.">
-  <meta name="theme-color" content="#e9e4d8">
-  <link rel="stylesheet" href="css/museum.css">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%237c2d1d'/%3E%3Ctext x='16' y='24' font-family='Georgia' font-size='22' fill='%23fff7ee' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
-  <!-- three.js is bundled in vendor/, so the page works on GitHub Pages without any build step. -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "./vendor/three.module.js",
-      "three/addons/": "./vendor/addons/"
-    }
-  }
-  </script>
+  <title>Jane Dieulafoy: A Catalogue of the Photographs</title>
+  <meta name="description" content="A catalogue of Jane Dieulafoy's photographs, in the manner of an old printed catalogue: 774 numbered plates from the Dieulafoy albums of the INHA library, Paris, in six chapters.">
+  <meta name="theme-color" content="#2e2a26">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/catalogue.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%233a2f26'/%3E%3Ctext x='16' y='24' font-family='Georgia' font-size='22' fill='%23e8d9b5' text-anchor='middle'%3ED%3C/text%3E%3C/svg%3E">
 </head>
 <body>
-  <main id="stage" class="stage">
-    <canvas id="scene" aria-label="Interactive 3D model of a library study with six albums on the table. Drag to look around, scroll to zoom, click an album to open it." tabindex="0"></canvas>
-    <div id="pins" class="pins"></div>
-  </main>
-
-  <header class="masthead">
-    <p class="eyebrow">A library study · Six albums</p>
-    <h1>Jane Dieulafoy <em>The Photographs</em></h1>
-    <p class="sub">774 album pages from the INHA albums, 1880–1915</p>
-    <p class="where" id="where"></p>
-    <p class="credit">Developed by <strong>Mahmoud Mohammadi</strong><br>MA Visual Arts – Arts, Museology and Curatorship<br>University of Bologna</p>
+  <header class="top">
+    <a class="top-title" href="#p0"><span class="sc">Dieulafoy</span> <em>Catalogue of the Photographs</em></a>
+    <nav class="top-nav" aria-label="Catalogue">
+      <button type="button" class="tbtn" data-go="contents">Contents</button>
+      <button type="button" class="tbtn" data-act="search">Search</button>
+      <a class="tbtn" href="study.html">The study in 3D</a>
+    </nav>
   </header>
 
-  <nav id="read-menu" class="read-menu" aria-label="Texts">
-    <button type="button" class="btn" data-read="about">The study</button>
-    <button type="button" class="btn" data-read="books">The six albums</button>
-    <button type="button" class="btn" data-read="catalogue">INHA albums</button>
-    <button type="button" class="btn accent" data-read="search">Search</button>
-  </nav>
+  <main class="desk" id="desk">
+    <div class="book" id="book" aria-live="polite">
+      <div class="edge edge-l" aria-hidden="true"></div>
+      <div class="edge edge-r" aria-hidden="true"></div>
+      <div class="slot slot-l" id="slot-l"></div>
+      <div class="slot slot-r" id="slot-r"></div>
+      <div class="ribbon" aria-hidden="true"></div>
+      <button type="button" class="turn-zone tz-prev" data-act="prev" aria-label="Previous page"></button>
+      <button type="button" class="turn-zone tz-next" data-act="next" aria-label="Next page"></button>
+    </div>
+  </main>
 
-  <div id="views" class="views" role="toolbar" aria-label="Camera views and albums"></div>
-  <div id="album-bar" class="album-bar" hidden role="toolbar" aria-label="Open album"></div>
+  <footer class="bar" role="toolbar" aria-label="Pages">
+    <button type="button" class="tbtn arrow" data-act="prev" aria-label="Previous page">‹</button>
+    <label class="scrub"><span class="sr">Go to page</span><input type="range" id="scrub" min="0" value="0"></label>
+    <span class="folio" id="folio"></span>
+    <button type="button" class="tbtn arrow" data-act="next" aria-label="Next page">›</button>
+  </footer>
 
-  <aside id="frame-card" class="frame-card" hidden aria-live="polite"></aside>
-  <aside id="reader" class="reader" hidden role="dialog" aria-label="Reading panel"></aside>
+  <div class="sheet" id="search" hidden role="dialog" aria-label="Search the catalogue">
+    <div class="sheet-card">
+      <button type="button" class="sheet-close" data-act="close-search" aria-label="Close">✕</button>
+      <p class="kicker">Search the catalogue</p>
+      <label><span class="sr">Search captions</span><input type="search" id="q" placeholder="Ispahan, pont, derviche, frise, Salamanque…" autocomplete="off"></label>
+      <p class="hits" id="hits"></p>
+      <ol class="results" id="results"></ol>
+    </div>
+  </div>
 
   <div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-labelledby="v-title">
     <div class="v-stage">
@@ -53,41 +59,20 @@
         <button type="button" data-v="zoomout" aria-label="Zoom out">&minus;</button>
         <button type="button" data-v="home" aria-label="Fit to screen">&#9634;</button>
       </div>
-      <button type="button" class="v-nav v-prev" data-v="prev" aria-label="Previous">&larr;</button>
-      <button type="button" class="v-nav v-next" data-v="next" aria-label="Next">&rarr;</button>
+      <button type="button" class="v-nav v-prev" data-v="prev" aria-label="Previous plate">&larr;</button>
+      <button type="button" class="v-nav v-next" data-v="next" aria-label="Next plate">&rarr;</button>
     </div>
     <aside class="v-panel">
-      <button type="button" class="reader-close v-close" data-v="close" aria-label="Close">✕</button>
-      <p class="kicker" id="v-room"></p>
+      <button type="button" class="sheet-close" data-v="close" aria-label="Close">✕</button>
+      <p class="kicker" id="v-no"></p>
       <h2 id="v-title"></h2>
       <dl class="v-meta" id="v-meta"></dl>
-      <div class="card-actions" id="v-actions"></div>
-      <p class="fine" id="v-count"></p>
+      <div class="v-actions" id="v-actions"></div>
     </aside>
   </div>
 
-  <section id="welcome" class="welcome" aria-labelledby="w-title">
-    <div class="welcome-card">
-      <p class="eyebrow">A library study · Six albums</p>
-      <h2 id="w-title">Jane Dieulafoy <em>The Photographs</em></h2>
-      <p>Six leather albums lie on the table of a library study. Between them they hold every captioned page of the Dieulafoy albums kept at the <strong>INHA</strong> library in Paris, <strong>774</strong> in all: the road to Persia, its mosques and bridges, its ancient empires, the excavation of Susa, its people, and Spain and France.</p>
-      <ul>
-        <li><b>Click an album</b> to open it, and turn its pages with <b>‹ ›</b>, the arrow keys or a swipe.</li>
-        <li><b>Click a page</b> to see the scan at full resolution.</li>
-        <li><b>Drag</b> to look around the room, <b>scroll</b> or pinch to zoom.</li>
-      </ul>
-      <button type="button" id="enter" class="btn accent big">Enter the study</button>
-      <p class="credit">Developed by <strong>Mahmoud Mohammadi</strong><br>MA Visual Arts – Arts, Museology and Curatorship<br>University of Bologna</p>
-    </div>
-  </section>
-
-  <div id="loading" class="loading" role="status"><span>Opening the study…</span></div>
-  <div id="fallback" class="fallback" hidden>
-    <p>This page needs WebGL to show the 3D study, and your browser did not start it. Try a recent version of Chrome, Edge, Firefox or Safari, and check that hardware acceleration is on.</p>
-  </div>
-  <noscript><p class="fallback">This page needs JavaScript to show the 3D study.</p></noscript>
-
+  <noscript><p class="noscript">This catalogue needs JavaScript to turn its pages.</p></noscript>
   <script src="vendor/openseadragon.min.js"></script>
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/catalogue.js"></script>
 </body>
 </html>
