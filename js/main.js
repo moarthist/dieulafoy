@@ -26,7 +26,9 @@ try {
   document.getElementById('loading').remove();
   throw err;
 }
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+// Retina screens get at most 1.5 device pixels per CSS pixel; the loop lowers this if frames are slow.
+let pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+renderer.setPixelRatio(pixelRatio);
 renderer.setClearColor(0x000000, 0);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
@@ -54,7 +56,10 @@ const plan = planRooms(ROOMS);
 const byRoom = Object.fromEntries(ROOMS.map((r) => [r.id, ITEMS.filter((it) => it.r === r.id)]));
 const counts = { total: ITEMS.length, ...Object.fromEntries(ROOMS.map((r) => [r.id, byRoom[r.id].length])) };
 const building = buildBuilding(scene, plan, { aniso, museum: MUSEUM, counts });
-const gallery = buildFrames(scene, plan, byRoom, { aniso, img });
+// The scene is drawn only when something changes: the camera moves, a scan arrives, the window resizes.
+let dirty = true;
+const invalidate = () => { dirty = true; };
+const gallery = buildFrames(scene, plan, byRoom, { aniso, img, onChange: invalidate });
 const frames = gallery.frames;
 
 // ---- Camera views ----------------------------------------------------------------------
@@ -107,6 +112,7 @@ function goTo(id, instant = false) {
 }
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 controls.addEventListener('start', () => { tween = null; ui.setActiveView(null); });
+controls.addEventListener('change', invalidate);
 
 // Stand in front of a frame and show its card.
 function visitFrame(f, quiet = false) {
@@ -119,6 +125,7 @@ function visitFrame(f, quiet = false) {
   flyTo([c.x + n.x * back, eyeY, c.z + n.z * back], [c.x, c.y - drop, c.z], 44, quiet);
   ui.setActiveView(null);
   gallery.setHover(f);
+  invalidate();
   ui.openCard(f);
 }
 
@@ -177,18 +184,29 @@ canvas.addEventListener('pointerup', (e) => {
   if (h.frame) visitFrame(h.frame);
   else if (h.floor) walkTo(h.floor);
 });
+// Hovering is checked at most once a frame, and only against the pictures and the walls.
+let moveEvent = null;
+const hoverTargets = [...building.blockers, ...gallery.photos];
 canvas.addEventListener('pointermove', (e) => {
-  if (e.pointerType !== 'mouse' || e.buttons) return;
-  const h = pick(e);
-  const f = h && h.frame;
+  if (e.pointerType === 'mouse' && !e.buttons) moveEvent = e;
+});
+function hover() {
+  const e = moveEvent;
+  moveEvent = null;
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(hoverTargets, false)[0];
+  const f = hit && hit.object.userData.frame;
   if (f !== hovered) {
     hovered = f;
     gallery.setHover(f || ui.current);
+    invalidate();
   }
-  canvas.style.cursor = f ? 'pointer' : h && h.floor ? 'crosshair' : '';
-});
-canvas.addEventListener('pointerleave', () => { hovered = null; gallery.setHover(ui.current); canvas.style.cursor = ''; });
-document.getElementById('frame-card').addEventListener('click', (e) => { if (e.target.closest('.card-close')) gallery.setHover(null); });
+  canvas.style.cursor = f ? 'pointer' : hit && hit.object === building.floor ? 'crosshair' : '';
+}
+canvas.addEventListener('pointerleave', () => { moveEvent = null; hovered = null; gallery.setHover(ui.current); canvas.style.cursor = ''; invalidate(); });
+document.getElementById('frame-card').addEventListener('click', (e) => { if (e.target.closest('.card-close')) { gallery.setHover(null); invalidate(); } });
 
 // ---- Size and loop ---------------------------------------------------------------------
 function resize() {
@@ -198,6 +216,7 @@ function resize() {
   camera.aspect = aspect;
   if (!tween) camera.fov = fovFor(baseFov);
   camera.updateProjectionMatrix();
+  invalidate();
 }
 new ResizeObserver(resize).observe(stage);
 resize();
@@ -210,21 +229,34 @@ function tick() {
     litRoom = p;
     building.lightRoom(p);
     ui.setRoom(p && p.room);
+    invalidate();
   }
   gallery.stream(camera);
 }
 
-const PERF = location.search.includes('perf') ? { n: 0, worst: 0, last: 0, tick: 0, render: 0, cull: 0, t0: 0, el: null } : null;
-if (PERF) { PERF.el = document.createElement('pre'); PERF.el.style.cssText = 'position:fixed;left:8px;top:200px;z-index:99;background:#000;color:#0f0;font:14px monospace;padding:8px'; document.body.append(PERF.el); }
+// If drawing is slow while moving, lower the resolution step by step.
+const slow = { n: 0, sum: 0, last: 0 };
+function adapt(now) {
+  if (slow.last && now - slow.last < 200) {
+    slow.sum += now - slow.last;
+    slow.n += 1;
+    if (slow.n === 30) {
+      if (slow.sum / slow.n > 34 && pixelRatio > 0.75) {
+        pixelRatio = Math.max(0.75, pixelRatio - 0.25);
+        renderer.setPixelRatio(pixelRatio);
+        resize();
+      }
+      slow.n = 0; slow.sum = 0;
+    }
+  }
+  slow.last = now;
+}
+
 function frame(now) {
   requestAnimationFrame(frame);
-  if (PERF) {
-    if (PERF.last) { PERF.n += 1; PERF.worst = Math.max(PERF.worst, now - PERF.last); } else PERF.t0 = now;
-    PERF.last = now;
-    const secs = (now - PERF.t0) / 1000;
-    PERF.el.textContent = `fps ${(PERF.n / Math.max(secs, 0.001)).toFixed(1)}  worst ${PERF.worst.toFixed(0)}ms\ntick ${PERF.tick.toFixed(1)}  cull ${PERF.cull.toFixed(1)}  render ${PERF.render.toFixed(1)} ms\ncalls ${renderer.info.render.calls} tex ${renderer.info.memory.textures} prog ${renderer.info.programs.length}\nloaded ${frames.filter((f) => f.thumb).length} thumbs ${frames.filter((f) => f.sharp).length} sharp`;
-  }
+  if (moveEvent) hover();
   if (tween) {
+    dirty = true;
     const k = Math.min(1, (now - tween.t0) / tween.dur), e = ease(k);
     camera.position.lerpVectors(tween.from.pos, tween.to.pos, e);
     controls.target.lerpVectors(tween.from.target, tween.to.target, e);
@@ -237,16 +269,13 @@ function frame(now) {
   controls.target.y = THREE.MathUtils.clamp(controls.target.y, 0, B.H);
   controls.update();
   if (camera.position.y < 0.12) camera.position.y = 0.12;
-  let pt = performance.now();
-  gallery.cull(camera);
-  if (PERF) PERF.cull = Math.max(PERF.cull, performance.now() - pt);
-  pt = performance.now();
   if (now - lastTick > 300) { lastTick = now; tick(); }
-  if (PERF) PERF.tick = Math.max(PERF.tick, performance.now() - pt);
-  pt = performance.now();
+  if (!dirty) { slow.last = 0; return; }
+  dirty = false;
+  gallery.cull(camera);
   renderer.render(scene, camera);
-  if (PERF) PERF.render = Math.max(PERF.render, performance.now() - pt);
   ui.updatePins(camera, stage.clientWidth, stage.clientHeight);
+  adapt(now);
 }
 
 // ---- Start -----------------------------------------------------------------------------

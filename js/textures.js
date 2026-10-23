@@ -86,22 +86,6 @@ export function softShadowTexture() {
   return shadowTex;
 }
 
-// A pool of warm light on the wall, as if from a track spot.
-let poolTex = null;
-export function lightPoolTexture() {
-  if (poolTex) return poolTex;
-  const S = 256, c = makeCanvas(S, S), g = c.getContext('2d');
-  const gr = g.createRadialGradient(S / 2, S * 0.42, 0, S / 2, S * 0.42, S / 2);
-  gr.addColorStop(0, 'rgba(255,236,200,0.3)');
-  gr.addColorStop(0.55, 'rgba(255,236,200,0.09)');
-  gr.addColorStop(1, 'rgba(255,236,200,0)');
-  g.fillStyle = gr;
-  g.fillRect(0, 0, S, S);
-  poolTex = new THREE.CanvasTexture(c);
-  poolTex.colorSpace = THREE.SRGBColorSpace;
-  return poolTex;
-}
-
 // Wraps text inside a box. Returns the y position after the last line.
 export function wrapText(g, text, x, y, maxW, lineH, maxLines = 99) {
   const words = text.split(/\s+/);

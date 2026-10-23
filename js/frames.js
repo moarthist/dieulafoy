@@ -2,14 +2,14 @@
 // Frames, mats, labels and shadows are instanced; each picture is its own plane so its scan
 // can stream in: a small thumbnail everywhere, a sharp image when the visitor comes close.
 import * as THREE from 'three';
-import { lightPoolTexture, softShadowTexture, woodTexture } from './textures.js';
+import { softShadowTexture, woodTexture } from './textures.js';
 
 const PHOTO_W = 0.36, PHOTO_H = 0.28;     // an album page is about 34 x 27 cm
 const MAT = 0.06, BORDER = 0.035, DEPTH = 0.04;
 const MIN_PITCH = 0.7;
 const ROWS = { 2: [1.78, 1.2], 3: [2.12, 1.52, 0.92] };
-const THUMB = '!160,160', SHARP = '!900,900';
-const NEAR = 4.5, FAR = 8, MAX_LOADING = 6;
+const THUMB = '!160,160', SHARP = '!700,700';
+const NEAR = 3.2, FAR = 6, MAX_LOADING = 6, MAX_SHARP = 2;
 
 // Spread the pages of a room over its faces, column by column, left to right.
 function hang(p, items) {
@@ -44,7 +44,7 @@ function hang(p, items) {
   return slots.slice(0, items.length);
 }
 
-export function buildFrames(scene, plan, itemsByRoom, { aniso = 4, img }) {
+export function buildFrames(scene, plan, itemsByRoom, { aniso = 4, img, onChange = () => {} }) {
   const frames = [];
   plan.forEach((p) => {
     const items = itemsByRoom[p.room.id];
@@ -59,7 +59,6 @@ export function buildFrames(scene, plan, itemsByRoom, { aniso = 4, img }) {
   const mats = new THREE.InstancedMesh(geoPlane, new THREE.MeshStandardMaterial({ color: 0xf2efe8, roughness: 1, envMapIntensity: 0.2 }), n);
   const labels = new THREE.InstancedMesh(geoPlane, new THREE.MeshStandardMaterial({ color: 0xf7f5f0, roughness: 0.9, envMapIntensity: 0.2 }), n);
   const shadows = new THREE.InstancedMesh(geoPlane, new THREE.MeshBasicMaterial({ map: softShadowTexture(), transparent: true, opacity: 0.42, depthWrite: false }), n);
-  const pools = new THREE.InstancedMesh(geoPlane, new THREE.MeshBasicMaterial({ map: lightPoolTexture(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }), n);
   const placeholder = new THREE.MeshStandardMaterial({ color: 0xdcd8ce, roughness: 1, envMapIntensity: 0.1 });
   const glow = new THREE.Mesh(geoPlane, new THREE.MeshBasicMaterial({ color: 0xd9a441, transparent: true, opacity: 0.5, depthWrite: false }));
   glow.visible = false;
@@ -83,7 +82,6 @@ export function buildFrames(scene, plan, itemsByRoom, { aniso = 4, img }) {
     mats.setMatrixAt(k, m4.compose(at(DEPTH + 0.001), q, sc.set(w - 2 * BORDER, h - 2 * BORDER, 1)));
     labels.setMatrixAt(k, m4.compose(at(0.003, w / 2 - 0.05, -h / 2 - 0.06), q, sc.set(0.1, 0.035, 1)));
     shadows.setMatrixAt(k, m4.compose(at(0.002, 0.012, -0.03), q, sc.set(w + 0.2, h + 0.2, 1)));
-    pools.setMatrixAt(k, m4.compose(at(0.001, 0, 0.12), q, sc.set(w * 2.0, h * 2.6, 1)));
     const photo = new THREE.Mesh(geoPlane, placeholder);
     photo.scale.set(pw, ph, 1);
     photo.position.copy(at(DEPTH + 0.003));
@@ -93,26 +91,27 @@ export function buildFrames(scene, plan, itemsByRoom, { aniso = 4, img }) {
     photos.push(photo);
     Object.assign(f, { w, h, pw, ph, rotY, photo, center: new THREE.Vector3(f.x, f.y, f.z), normal: new THREE.Vector3(f.n[0], 0, f.n[1]) });
   });
-  [wood, mats, labels, shadows, pools].forEach((m) => { m.instanceMatrix.needsUpdate = true; scene.add(m); });
-  shadows.renderOrder = -2;
-  pools.renderOrder = -1;
+  [wood, mats, labels, shadows].forEach((m) => { m.instanceMatrix.needsUpdate = true; scene.add(m); });
+  shadows.renderOrder = -1;
   [wood, mats].forEach((m) => { m.userData.frames = frames; });
 
   // ---- streaming -----------------------------------------------------------
   const loader = new THREE.TextureLoader();
   loader.setCrossOrigin('anonymous');
-  let loading = 0;
+  let loading = 0, sharpLoading = 0;
   function load(f, tier) {
     loading += 1;
+    if (tier === 'sharp') sharpLoading += 1;
     f.pending = tier;
     loader.load(img(f.it, tier === 'sharp' ? SHARP : THUMB), (t) => {
       loading -= 1;
+      if (tier === 'sharp') sharpLoading -= 1;
       f.pending = null;
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = aniso;
       if (tier === 'thumb') f.thumb = t; else f.sharp = t;
       show(f);
-    }, undefined, () => { loading -= 1; f.pending = null; f.failed = (f.failed || 0) + 1; });
+    }, undefined, () => { loading -= 1; if (tier === 'sharp') sharpLoading -= 1; f.pending = null; f.failed = (f.failed || 0) + 1; });
   }
   function show(f) {
     const t = f.sharp || f.thumb;
@@ -123,6 +122,7 @@ export function buildFrames(scene, plan, itemsByRoom, { aniso = 4, img }) {
       f.photo.material.map = t;
       f.photo.material.emissiveMap = t;
     }
+    onChange();
   }
   const tmp = new THREE.Vector3();
   function stream(camera) {
@@ -142,7 +142,7 @@ export function buildFrames(scene, plan, itemsByRoom, { aniso = 4, img }) {
       else if (!f.thumb && d + (facing ? 0 : 6) < bestScore) { best = f; bestScore = d + (facing ? 0 : 6); }
     }
     sharpWanted.sort((a, b) => a[0] - b[0]);
-    for (const [, f] of sharpWanted) { if (loading >= MAX_LOADING) return; load(f, 'sharp'); }
+    for (const [, f] of sharpWanted) { if (loading >= MAX_LOADING || sharpLoading >= MAX_SHARP) break; load(f, 'sharp'); }
     // thumbnails: the nearest few at a time
     while (loading < MAX_LOADING && best) {
       load(best, 'thumb');
@@ -157,7 +157,7 @@ export function buildFrames(scene, plan, itemsByRoom, { aniso = 4, img }) {
 
   // Frames on a wall that faces away from the camera are seen from behind through the
   // see-through section walls, so they are folded away until the wall turns to face you.
-  const instanced = [wood, mats, labels, shadows, pools];
+  const instanced = [wood, mats, labels, shadows];
   const saved = instanced.map((m) => Float32Array.from(m.instanceMatrix.array));
   const zero = new THREE.Matrix4().makeScale(0, 0, 0);
   frames.forEach((f) => { f.face = `${f.n[0]},${f.n[1]},${f.n[0] ? f.x.toFixed(2) : f.z.toFixed(2)}`; f.shown = true; });
