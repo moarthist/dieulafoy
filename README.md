@@ -6,7 +6,11 @@ one of six virtual rooms. Each opens at full resolution, with deep zoom, straigh
 
 It is a plain static website: no build step, no framework, nothing to install. It runs on GitHub Pages as it is.
 
-## The rooms
+## The museum
+
+The whole page is a 3D model of a small museum building, in the manner of the
+[Representing Persia](https://github.com/moarthist/representingpersia) room: six rooms open off a long hall, and
+the walls are cut away at the top like an architect's section model, so from above you look into every room.
 
 | Room | Title | What hangs there | Pages |
 | --- | --- | --- | --- |
@@ -17,17 +21,20 @@ It is a plain static website: no build step, no framework, nothing to install. I
 | 5 | Faces and Encounters | Portraits: the Qajar court, dervishes, Armenians of Julfa, workers at Susa, the Dieulafoys | 151 |
 | 6 | Beyond Persia | Spain and Portugal, France, and the antiquities of the album “Divers” | 196 |
 
-Each room opens with a wall text, then a **gallery wall** you walk along (scroll, swipe, or the arrow keys), or an
-**index** of every page with a caption search. Click any page to open the viewer: deep zoom, the full INHA
-caption, album, page and shelf mark, a link to the page in the INHA viewer and to the full-size image.
-**Walk in 3D** (`#/walk`, or `#/walk/susa` to start in a room) is a first-person walk-through of the same six
-rooms, built with three.js. The rooms open into one another through doorways, from Room 1 to Room 6. Each has a
-central wall painted in its colour with the wall text on its head, and every one of the 774 pages hangs framed in
-two rows along the walls, numbered in walking order. Drag to look; walk with the arrow keys or W A S D (Shift to
-hurry), or click the floor to go there; click a frame to open it in the viewer; press 1 to 6 or click the plan
-to jump. Scans load from INHA as you approach them.
+Rooms 1–3 are on the north side of the hall and 4–6 on the south side, so a visit goes round the hall. Each room
+has a freestanding central wall with the room’s wall text on it, framed in the room’s colour, and every one of the
+774 album pages hangs in a walnut frame with a mat, at real size (an album page is about 34 × 27 cm), in two or
+three rows round the walls. The scans come from the INHA image server: a small version for every frame, and a
+sharp one for the frames you stand close to.
 
-**Albums** lists the eight albums with their records and searches all captions at once.
+**How to visit.** Drag to look around, scroll or pinch to zoom, right-drag or the arrow keys to move. Click the
+floor to walk there, and click a frame to stand in front of it: its card gives the caption, album and page, with
+**‹ ›** to move along the wall, **Look closer** for the deep-zoom viewer, and a link to the page at INHA. The
+buttons at the bottom take you to the overview, the hall, each room and the plan; the gold pins and the buttons at
+the top open the texts, the album catalogue and a search across every caption.
+
+**Links.** `#room3` (or `#susa`, `#people`…) opens straight in a room, and `#page-62747-15` (album id, page)
+straight in front of that frame.
 
 ## The albums
 
@@ -81,25 +88,27 @@ python3 tools/build_data.py
 ## Edit the text
 
 All the writing is in `js/content.js`: the introduction (`MUSEUM`), the six rooms (`ROOMS`: title, subtitle,
-colour, wall text and the page shown at the entrance) and the album notes (`ALBUM_NOTES`).
+colour and wall text) and the album notes (`ALBUM_NOTES`).
 
 ## Files
 
 | File | What it does |
 | --- | --- |
-| `index.html` | Page shell: top bar, main area, viewer |
-| `css/museum.css` | All styles: lobby, floor plan, rooms, gallery wall, index, albums, viewer |
-| `js/app.js` | Routing, lobby, rooms, albums, search and the viewer |
-| `js/walk.js` | The 3D walk-through: room layout, frames, walking, the plan |
+| `index.html` | Page shell: the 3D stage, masthead, menus, reading panel, frame card, viewer, welcome card |
+| `css/museum.css` | Interface styles |
+| `js/main.js` | Renderer, camera views, navigation, clicking and the loop |
+| `js/building.js` | Plan of the building: hall, rooms, doorways, central walls, wall texts, lights, benches |
+| `js/frames.js` | Hanging the pages, the frames, and streaming the scans |
+| `js/textures.js` | Procedural textures (concrete, walnut) and the texts drawn on canvases |
+| `js/ui.js` | View buttons, reading panel, frame card, pins and the deep-zoom viewer |
 | `js/content.js` | **All the text** |
 | `js/data.js` | Generated list of albums and pages, with their captions and rooms |
 | `tools/build_data.py` | Builds `js/data.js` from the INHA manifests |
-| `vendor/openseadragon.min.js` | OpenSeadragon 4.1.1 (BSD licence) for deep zoom |
-| `vendor/three.module.js` | three.js r160 (MIT licence) for the walk-through |
+| `vendor/` | three.js r160 (MIT licence) and OpenSeadragon 4.1.1 (BSD licence), so no CDN is needed |
 
 ## Credits
 
 Developed by **Mahmoud Mohammadi**, MA Visual Arts – Arts, Museology and Curatorship, University of Bologna.
 
 Scans and captions: Bibliothèque de l’INHA, collections Jacques Doucet, public domain. This project is
-independent and is not affiliated with the INHA. Deep zoom by [OpenSeadragon](https://openseadragon.github.io/); 3D by [three.js](https://threejs.org/).
+independent and is not affiliated with the INHA. Built with [three.js](https://threejs.org/) (MIT) and [OpenSeadragon](https://openseadragon.github.io/) (BSD).
