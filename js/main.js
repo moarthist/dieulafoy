@@ -214,8 +214,16 @@ function tick() {
   gallery.stream(camera);
 }
 
+const PERF = location.search.includes('perf') ? { n: 0, worst: 0, last: 0, tick: 0, render: 0, cull: 0, t0: 0, el: null } : null;
+if (PERF) { PERF.el = document.createElement('pre'); PERF.el.style.cssText = 'position:fixed;left:8px;top:200px;z-index:99;background:#000;color:#0f0;font:14px monospace;padding:8px'; document.body.append(PERF.el); }
 function frame(now) {
   requestAnimationFrame(frame);
+  if (PERF) {
+    if (PERF.last) { PERF.n += 1; PERF.worst = Math.max(PERF.worst, now - PERF.last); } else PERF.t0 = now;
+    PERF.last = now;
+    const secs = (now - PERF.t0) / 1000;
+    PERF.el.textContent = `fps ${(PERF.n / Math.max(secs, 0.001)).toFixed(1)}  worst ${PERF.worst.toFixed(0)}ms\ntick ${PERF.tick.toFixed(1)}  cull ${PERF.cull.toFixed(1)}  render ${PERF.render.toFixed(1)} ms\ncalls ${renderer.info.render.calls} tex ${renderer.info.memory.textures} prog ${renderer.info.programs.length}\nloaded ${frames.filter((f) => f.thumb).length} thumbs ${frames.filter((f) => f.sharp).length} sharp`;
+  }
   if (tween) {
     const k = Math.min(1, (now - tween.t0) / tween.dur), e = ease(k);
     camera.position.lerpVectors(tween.from.pos, tween.to.pos, e);
@@ -229,9 +237,15 @@ function frame(now) {
   controls.target.y = THREE.MathUtils.clamp(controls.target.y, 0, B.H);
   controls.update();
   if (camera.position.y < 0.12) camera.position.y = 0.12;
+  let pt = performance.now();
   gallery.cull(camera);
+  if (PERF) PERF.cull = Math.max(PERF.cull, performance.now() - pt);
+  pt = performance.now();
   if (now - lastTick > 300) { lastTick = now; tick(); }
+  if (PERF) PERF.tick = Math.max(PERF.tick, performance.now() - pt);
+  pt = performance.now();
   renderer.render(scene, camera);
+  if (PERF) PERF.render = Math.max(PERF.render, performance.now() - pt);
   ui.updatePins(camera, stage.clientWidth, stage.clientHeight);
 }
 
@@ -278,4 +292,4 @@ window.addEventListener('hashchange', () => {
 });
 
 // Handy for debugging.
-window.__museum = { goTo, camera, controls, scene, frames, plan, ui, THREE, visitFrame };
+window.__museum = { goTo, camera, controls, scene, renderer, frames, plan, ui, THREE, visitFrame };
